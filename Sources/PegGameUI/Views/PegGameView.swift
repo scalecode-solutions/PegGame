@@ -22,15 +22,17 @@ public struct PegGameView: View {
             theme.pageBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
+            VStack(spacing: 18) {
                 Header(model: model, showStats: { isShowingStats = true })
                     .padding(.horizontal)
 
                 BoardView(model: model)
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 4)
                     .frame(maxWidth: 520)
                     .frame(maxWidth: .infinity)
+
+                BoardStatusStrip(model: model)
+                    .padding(.horizontal)
 
                 Spacer(minLength: 0)
 
@@ -74,15 +76,10 @@ private struct Header: View {
     var showStats: () -> Void
 
     var body: some View {
-        HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Peg Game")
-                    .font(.system(.largeTitle, design: .serif).weight(.bold))
-                    .foregroundStyle(theme.headlineColor)
-                Text("\(model.session.pegCount) pegs · \(model.session.moveCount) moves")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(theme.bodyColor.opacity(0.85))
-            }
+        HStack(alignment: .center) {
+            Text("Peg Game")
+                .font(.system(.largeTitle, design: .serif).weight(.bold))
+                .foregroundStyle(theme.headlineColor)
             Spacer()
             Button(action: showStats) {
                 Image(systemName: "chart.bar.fill")
