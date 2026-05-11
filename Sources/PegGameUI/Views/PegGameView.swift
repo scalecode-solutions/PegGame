@@ -64,10 +64,9 @@ public struct PegGameView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Top chrome cluster — header, controls, status strip stack
-                // flush together so they read as one band of "stuff that
-                // isn't the game." The control bar sits within thumb reach
-                // of where your hand rests near the top of the screen.
+                // Top chrome cluster — header + controls flush together.
+                // The control bar sits within thumb reach of where your hand
+                // rests near the top of the screen.
                 if !embedded {
                     Header(showStats: { statsBinding.wrappedValue = true })
                         .padding(.horizontal)
@@ -76,22 +75,28 @@ public struct PegGameView: View {
 
                 ControlBar(model: model)
                     .padding(.horizontal)
-                    .padding(.bottom, 14)
 
-                BoardStatusStrip(model: model)
-                    .padding(.horizontal)
-
+                // Open space — pushes the board down toward the
+                // lower-middle of the screen for thumb reach.
                 Spacer(minLength: 12)
 
-                // The active surface — pushed to the bottom of the screen so
-                // every peg is within natural thumb travel. safeAreaPadding
-                // keeps the base row floating above the home indicator.
                 BoardView(model: model)
                     .padding(.horizontal, 16)
                     .frame(maxWidth: 520)
                     .frame(maxWidth: .infinity)
-                    .safeAreaPadding(.bottom, 8)
+
+                // Status info + captured-peg tray live below the board to
+                // create breathing room between the board and the bottom
+                // safe-area inset. A min-height reservation keeps the
+                // board's vertical position stable as captures fill the
+                // tray during play.
+                BoardStatusStrip(model: model)
+                    .padding(.horizontal)
+                    .padding(.top, 14)
+                    .padding(.bottom, 16)
+                    .frame(minHeight: 76, alignment: .top)
             }
+            .safeAreaPadding(.bottom, 8)
 
             if case .complete(let pegs, let rating) = model.session.status, model.isShowingCelebration {
                 ScoreCard(
