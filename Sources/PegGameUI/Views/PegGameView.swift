@@ -29,6 +29,8 @@ public struct PegGameView: View {
 
     @State private var model: PegGameViewModel
     @State private var internalIsShowingStats = false
+    @State private var soundPlayer = SoundEffectPlayer()
+    @AppStorage("dev.scalecode.PegGame.soundEnabled") private var soundEnabled = true
     @Environment(\.pegTheme) private var theme
 
     private let embedded: Bool
@@ -68,9 +70,12 @@ public struct PegGameView: View {
                 // The control bar sits within thumb reach of where your hand
                 // rests near the top of the screen.
                 if !embedded {
-                    Header(showStats: { statsBinding.wrappedValue = true })
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
+                    Header(
+                        soundEnabled: $soundEnabled,
+                        showStats: { statsBinding.wrappedValue = true }
+                    )
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
                 }
 
                 ControlBar(model: model)
@@ -122,6 +127,21 @@ public struct PegGameView: View {
         .sensoryFeedback(.from(.pegMoved), trigger: model.session.moveCount)
         .sensoryFeedback(.from(.win), trigger: model.isShowingCelebration) { _, new in new }
         .sensoryFeedback(.from(.pegSelected), trigger: model.selectedPosition)
+        // Sound effects mirror the haptic triggers. moveCount goes UP on an
+        // applied move and DOWN on an undo, so a single onChange covers both.
+        .onChange(of: model.session.moveCount) { old, new in
+            guard soundEnabled else { return }
+            soundPlayer.play(new > old ? .pegMove : .undo)
+        }
+        .onChange(of: model.selectedPosition) { _, new in
+            if soundEnabled, new != nil { soundPlayer.play(.pegSelect) }
+        }
+        .onChange(of: model.hintedMove) { _, new in
+            if soundEnabled, new != nil { soundPlayer.play(.hint) }
+        }
+        .onChange(of: model.isShowingCelebration) { _, new in
+            if soundEnabled, new { soundPlayer.play(.win) }
+        }
         .sheet(isPresented: statsBinding) {
             StatsSheet(store: model.statsStore)
                 .pegTheme(theme)
@@ -132,28 +152,48 @@ public struct PegGameView: View {
 
 private struct Header: View {
     @Environment(\.pegTheme) private var theme
+    @Binding var soundEnabled: Bool
     var showStats: () -> Void
 
     var body: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: 10) {
             Text("Peg Game")
                 .font(.system(.largeTitle, design: .serif).weight(.bold))
                 .foregroundStyle(theme.headlineColor)
             Spacer()
-            Button(action: showStats) {
-                Image(systemName: "chart.bar.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(theme.headlineColor)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                Circle().stroke(theme.bodyColor.opacity(0.18), lineWidth: 1)
-                            )
-                    )
+            iconButton(
+                systemImage: soundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
+                accessibilityLabel: soundEnabled ? "Mute sound" : "Unmute sound"
+            ) {
+                soundEnabled.toggle()
             }
-            .accessibilityLabel("Stats")
+            iconButton(
+                systemImage: "chart.bar.fill",
+                accessibilityLabel: "Stats",
+                action: showStats
+            )
         }
+    }
+
+    private func iconButton(
+        systemImage: String,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(theme.headlineColor)
+                .frame(width: 44, height: 44)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            Circle().stroke(theme.bodyColor.opacity(0.18), lineWidth: 1)
+                        )
+                )
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .accessibilityLabel(accessibilityLabel)
     }
 }
