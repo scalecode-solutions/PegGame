@@ -26,7 +26,7 @@ In your project's `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/scalecode-solutions/PegGame.git", branch: "main"),
+    .package(url: "https://github.com/scalecode-solutions/PegGame.git", from: "0.2.0"),
 ],
 targets: [
     .target(
