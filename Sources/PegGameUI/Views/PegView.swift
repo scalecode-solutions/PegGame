@@ -26,7 +26,7 @@ public struct PegView: View {
                 .fill(theme.color(for: peg.color))
                 .frame(width: diameter, height: diameter)
                 .colorEffect(
-                    ShaderLibrary.default
+                    ShaderLibrary.bundle(.module)
                         .pegGloss(.float2(diameter, diameter))
                 )
                 .modifier(HintGlowEffect(isActive: isHinted, color: theme.hintTint, diameter: diameter))
@@ -57,7 +57,7 @@ private struct HintGlowEffect: ViewModifier {
                 let t = Float(context.date.timeIntervalSinceReferenceDate)
                 content
                     .layerEffect(
-                        ShaderLibrary.default.hintGlow(
+                        ShaderLibrary.bundle(.module).hintGlow(
                             .float(t),
                             .color(color)
                         ),

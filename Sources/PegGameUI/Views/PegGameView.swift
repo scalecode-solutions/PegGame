@@ -5,6 +5,7 @@ import PegGameKit
 public struct PegGameView: View {
 
     @State private var model: PegGameViewModel
+    @State private var isShowingStats = false
     @Environment(\.pegTheme) private var theme
 
     public init(session: GameSession? = nil,
@@ -21,15 +22,17 @@ public struct PegGameView: View {
             theme.pageBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Header(model: model)
+            VStack(spacing: 18) {
+                Header(model: model, showStats: { isShowingStats = true })
                     .padding(.horizontal)
 
                 BoardView(model: model)
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 4)
                     .frame(maxWidth: 520)
                     .frame(maxWidth: .infinity)
+
+                BoardStatusStrip(model: model)
+                    .padding(.horizontal)
 
                 Spacer(minLength: 0)
 
@@ -58,24 +61,40 @@ public struct PegGameView: View {
         .sensoryFeedback(.from(.pegMoved), trigger: model.session.moveCount)
         .sensoryFeedback(.from(.win), trigger: model.isShowingCelebration) { _, new in new }
         .sensoryFeedback(.from(.pegSelected), trigger: model.selectedPosition)
+        .sheet(isPresented: $isShowingStats) {
+            StatsSheet(store: model.statsStore)
+                .pegTheme(theme)
+                .presentationDetents([.medium, .large])
+                .preferredColorScheme(.dark)
+        }
     }
 }
 
 private struct Header: View {
     @Bindable var model: PegGameViewModel
     @Environment(\.pegTheme) private var theme
+    var showStats: () -> Void
 
     var body: some View {
-        HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Peg Game")
-                    .font(.system(.largeTitle, design: .serif).weight(.bold))
-                    .foregroundStyle(theme.headlineColor)
-                Text("\(model.session.pegCount) pegs · \(model.session.moveCount) moves")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(theme.bodyColor.opacity(0.85))
-            }
+        HStack(alignment: .center) {
+            Text("Peg Game")
+                .font(.system(.largeTitle, design: .serif).weight(.bold))
+                .foregroundStyle(theme.headlineColor)
             Spacer()
+            Button(action: showStats) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(theme.headlineColor)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                Circle().stroke(theme.bodyColor.opacity(0.18), lineWidth: 1)
+                            )
+                    )
+            }
+            .accessibilityLabel("Stats")
         }
     }
 }

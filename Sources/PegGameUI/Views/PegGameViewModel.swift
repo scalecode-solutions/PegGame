@@ -109,9 +109,17 @@ public final class PegGameViewModel {
             guard let self else { return }
             // Only commit if no other action superseded this flight.
             guard self.inFlightMove == inFlight else { return }
-            self.session.apply(inFlight.move)
+            // Wrap both state changes in one animated transaction so the new
+            // captured peg appears in the tray as the flying peg disappears.
             withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                self.session.apply(inFlight.move)
                 self.inFlightMove = nil
+            }
+            // If this move ended the game, let the peg's landing settle
+            // for a beat before celebrating — otherwise the score card
+            // pops up over a peg still mid-animation.
+            if !self.session.status.isActive {
+                try? await Task.sleep(for: .milliseconds(500))
             }
             self.checkForCompletion()
         }
@@ -119,9 +127,11 @@ public final class PegGameViewModel {
 
     public func undo() {
         guard inFlightMove == nil else { return }
-        session.undo()
-        selectedPosition = nil
-        hintedMove = nil
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+            session.undo()
+            selectedPosition = nil
+            hintedMove = nil
+        }
         // Undoing past completion clears the celebration banner.
         if session.status.isActive {
             isShowingCelebration = false
@@ -131,30 +141,36 @@ public final class PegGameViewModel {
 
     public func redo() {
         guard inFlightMove == nil else { return }
-        session.redo()
-        selectedPosition = nil
-        hintedMove = nil
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+            session.redo()
+            selectedPosition = nil
+            hintedMove = nil
+        }
         checkForCompletion()
     }
 
     public func restart() {
         cancelInFlight()
-        session.restart()
-        selectedPosition = nil
-        hintedMove = nil
-        isShowingCelebration = false
-        celebrationProgress = 0
-        didRecordCurrentGame = false
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+            session.restart()
+            selectedPosition = nil
+            hintedMove = nil
+            isShowingCelebration = false
+            celebrationProgress = 0
+            didRecordCurrentGame = false
+        }
     }
 
     public func restart(emptyAt position: BoardPosition) {
         cancelInFlight()
-        session.restart(emptyAt: position)
-        selectedPosition = nil
-        hintedMove = nil
-        isShowingCelebration = false
-        celebrationProgress = 0
-        didRecordCurrentGame = false
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+            session.restart(emptyAt: position)
+            selectedPosition = nil
+            hintedMove = nil
+            isShowingCelebration = false
+            celebrationProgress = 0
+            didRecordCurrentGame = false
+        }
     }
 
     public func requestHint() {

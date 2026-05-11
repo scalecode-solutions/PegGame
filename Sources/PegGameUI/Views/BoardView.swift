@@ -86,6 +86,12 @@ public struct BoardView: View {
                     )
                 )
             }
+
+            // Radiating pulse on the suggested destination hole.
+            if isHintDest {
+                HintDestinationPulse(diameter: diameter, color: theme.hintTint)
+                    .transition(.opacity)
+            }
         }
         .frame(width: diameter, height: diameter)
         .contentShape(Circle())
@@ -109,7 +115,7 @@ private struct CelebrationOverlay: View {
             Rectangle()
                 .fill(Color.white.opacity(0.001))
                 .colorEffect(
-                    ShaderLibrary.default.celebration(
+                    ShaderLibrary.bundle(.module).celebration(
                         .float2(proxy.size.width, proxy.size.height),
                         .float(Float(progress)),
                         .float(Float(seed))
