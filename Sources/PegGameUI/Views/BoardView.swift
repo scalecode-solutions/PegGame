@@ -86,6 +86,12 @@ public struct BoardView: View {
                     )
                 )
             }
+
+            // Radiating pulse on the suggested destination hole.
+            if isHintDest {
+                HintDestinationPulse(diameter: diameter, color: theme.hintTint)
+                    .transition(.opacity)
+            }
         }
         .frame(width: diameter, height: diameter)
         .contentShape(Circle())
