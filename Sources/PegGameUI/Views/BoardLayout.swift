@@ -16,10 +16,12 @@ public struct BoardLayout: Equatable {
         let horizontalUnits: CGFloat = 5
         // Extra wood reserved above the top peg and below the bottom row so
         // every peg has visual breathing room from the triangle silhouette.
-        // 0.35 units ≈ slightly less than half a peg of margin, which gives
-        // the apex peg ≈5pt of clearance from the rounded apex on iPhone.
-        let apexPadding: CGFloat = 0.35
-        let basePadding: CGFloat = 0.35
+        // Padding is intentionally asymmetric — slightly more above the
+        // apex than below the base — which seats the peg cluster a few
+        // points below the triangle's vertical center and visually feels
+        // like the pegs are resting *in* the board rather than floating.
+        let apexPadding: CGFloat = 0.50
+        let basePadding: CGFloat = 0.30
         let verticalGap: CGFloat = sqrt(3) / 2
         let verticalUnits = 4 * verticalGap + 1 + apexPadding + basePadding
 

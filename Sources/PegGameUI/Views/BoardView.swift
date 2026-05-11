@@ -42,11 +42,12 @@ public struct BoardView: View {
                 }
             }
         }
-        // Aspect ≈ 1.10. The peg cluster's natural aspect (5 wide × ~5 tall
-        // with the added apex/base padding) is roughly 1:1, so we give the
-        // BoardView slightly more vertical room than horizontal. The triangle
-        // is then height-constrained and reads as a near-equilateral plank.
-        .aspectRatio(1.10, contentMode: .fit)
+        // Aspect ≈ 1.20 — slightly wider than equilateral (1.155). The peg
+        // cluster's slope is 60° (rows offset by half a unit); a wider
+        // container makes the triangle silhouette less steep than the peg
+        // cluster, so the middle-row corner pegs end up with consistent
+        // wood margin instead of being kissed by the silhouette.
+        .aspectRatio(1.20, contentMode: .fit)
     }
 
     @ViewBuilder
