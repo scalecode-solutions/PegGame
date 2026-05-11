@@ -5,19 +5,18 @@ public struct RoundedTriangle: Shape {
 
     public var cornerRadius: CGFloat
 
-    public init(cornerRadius: CGFloat = 28) {
+    public init(cornerRadius: CGFloat = 32) {
         self.cornerRadius = cornerRadius
     }
 
     public func path(in rect: CGRect) -> Path {
-        let r = min(cornerRadius, min(rect.width, rect.height) * 0.25)
+        let r = min(cornerRadius, min(rect.width, rect.height) * 0.22)
         let top = CGPoint(x: rect.midX, y: rect.minY)
         let bl  = CGPoint(x: rect.minX, y: rect.maxY)
         let br  = CGPoint(x: rect.maxX, y: rect.maxY)
 
         var p = Path()
-        // Start slightly past top corner, on the left edge.
-        // We'll use addArc(tangent1End:tangent2End:radius:) to round corners.
+        // Start just past the top vertex, on the left edge.
         let start = midpoint(top, bl, fraction: 0.02)
         p.move(to: start)
         p.addLine(to: top)
@@ -36,8 +35,10 @@ public struct RoundedTriangle: Shape {
     }
 }
 
-/// Procedural wood-grain board surface. Renders the wood shader inside a
-/// rounded triangle, with a tint controlled by the theme.
+/// Pine-plank board surface. The procedural grain shader paints a Rectangle,
+/// which is then clipped to the triangle silhouette. A gradient bevel stroke
+/// implies the wood's thickness; an inner shadow adds depth at the edges; a
+/// drop shadow lifts the whole board off the page background.
 public struct WoodSurface: View {
 
     @Environment(\.pegTheme) private var theme
@@ -45,24 +46,50 @@ public struct WoodSurface: View {
     public init() {}
 
     public var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-            let time = context.date.timeIntervalSinceReferenceDate
-            GeometryReader { proxy in
-                RoundedTriangle()
+        GeometryReader { proxy in
+            let triangle = RoundedTriangle(cornerRadius: 34)
+            let w = proxy.size.width
+            let h = proxy.size.height
+
+            ZStack {
+                // 1. Wood grain painted across the full bounding rect, then
+                //    clipped to the triangle.
+                Rectangle()
                     .fill(theme.boardSurfaceTint)
                     .colorEffect(
-                        ShaderLibrary.default
-                            .woodGrain(
-                                .float2(proxy.size.width, proxy.size.height),
-                                .float(Float(time))
-                            )
+                        ShaderLibrary.default.woodGrain(
+                            .float2(w, h)
+                        )
                     )
-                    .overlay(
-                        RoundedTriangle()
-                            .stroke(Color.black.opacity(0.35), lineWidth: 1.2)
+                    .clipShape(triangle)
+
+                // 2. Inner darkening around the inside of the triangle —
+                //    suggests the wood is recessed slightly from the bevel.
+                triangle
+                    .stroke(Color.black.opacity(0.55), lineWidth: 10)
+                    .blur(radius: 6)
+                    .clipShape(triangle)
+                    .blendMode(.multiply)
+
+                // 3. Beveled outline: top-down gradient stroke. Light at the
+                //    top edges (where light would hit the wood), dark at the
+                //    bottom edges (where the wood thickness casts shadow).
+                triangle
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.55),
+                                Color.white.opacity(0.18),
+                                Color.black.opacity(0.18),
+                                Color.black.opacity(0.55),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 2.5
                     )
-                    .shadow(color: theme.boardShadow, radius: 18, x: 0, y: 12)
             }
+            .shadow(color: theme.boardShadow, radius: 20, x: 0, y: 14)
         }
     }
 }
