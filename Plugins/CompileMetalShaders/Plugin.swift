@@ -18,44 +18,44 @@ struct CompileMetalShadersPlugin: BuildToolPlugin {
         context: PluginContext,
         target: Target
     ) async throws -> [Command] {
-        let shadersDir = target.directory.appending("Shaders")
+        let shadersDir = target.directoryURL.appending(path: "Shaders")
         let fm = FileManager.default
         var isDir: ObjCBool = false
-        guard fm.fileExists(atPath: shadersDir.string, isDirectory: &isDir),
+        guard fm.fileExists(atPath: shadersDir.path(percentEncoded: false), isDirectory: &isDir),
               isDir.boolValue else {
             return []
         }
 
-        guard let entries = try? fm.contentsOfDirectory(atPath: shadersDir.string) else {
+        guard let entries = try? fm.contentsOfDirectory(atPath: shadersDir.path(percentEncoded: false)) else {
             return []
         }
         let metalFiles = entries
             .filter { $0.hasSuffix(".metal") }
             .sorted()
-            .map { shadersDir.appending($0) }
+            .map { shadersDir.appending(path: $0) }
         guard !metalFiles.isEmpty else { return [] }
 
-        let xcrun = Path("/usr/bin/xcrun")
-        let workDir = context.pluginWorkDirectory
+        let xcrun = URL(fileURLWithPath: "/usr/bin/xcrun")
+        let workDir = context.pluginWorkDirectoryURL
 
         var commands: [Command] = []
-        var airFiles: [Path] = []
+        var airFiles: [URL] = []
 
         for metalFile in metalFiles {
-            let stem = metalFile.stem
-            let airFile = workDir.appending("\(stem).air")
+            let stem = metalFile.deletingPathExtension().lastPathComponent
+            let airFile = workDir.appending(path: "\(stem).air")
             airFiles.append(airFile)
 
             commands.append(
                 .buildCommand(
-                    displayName: "Compile Metal shader \(metalFile.lastComponent)",
+                    displayName: "Compile Metal shader \(metalFile.lastPathComponent)",
                     executable: xcrun,
                     arguments: [
                         "metal",
                         "-c",
-                        metalFile.string,
+                        metalFile.path(percentEncoded: false),
                         "-o",
-                        airFile.string,
+                        airFile.path(percentEncoded: false),
                     ],
                     inputFiles: [metalFile],
                     outputFiles: [airFile]
@@ -63,12 +63,13 @@ struct CompileMetalShadersPlugin: BuildToolPlugin {
             )
         }
 
-        let libFile = workDir.appending("default.metallib")
+        let libFile = workDir.appending(path: "default.metallib")
         commands.append(
             .buildCommand(
                 displayName: "Link Metal shaders → default.metallib",
                 executable: xcrun,
-                arguments: ["metallib", "-o", libFile.string] + airFiles.map(\.string),
+                arguments: ["metallib", "-o", libFile.path(percentEncoded: false)]
+                    + airFiles.map { $0.path(percentEncoded: false) },
                 inputFiles: airFiles,
                 outputFiles: [libFile]
             )

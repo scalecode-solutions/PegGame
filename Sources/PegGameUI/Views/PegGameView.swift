@@ -59,30 +59,44 @@ public struct PegGameView: View {
     }
 
     public var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             theme.pageBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 18) {
+            VStack(spacing: 0) {
+                // Top chrome cluster — header + controls flush together.
+                // The control bar sits within thumb reach of where your hand
+                // rests near the top of the screen.
                 if !embedded {
                     Header(showStats: { statsBinding.wrappedValue = true })
                         .padding(.horizontal)
+                        .padding(.bottom, 8)
                 }
+
+                ControlBar(model: model)
+                    .padding(.horizontal)
+
+                // Open space — pushes the board down toward the
+                // lower-middle of the screen for thumb reach.
+                Spacer(minLength: 12)
 
                 BoardView(model: model)
                     .padding(.horizontal, 16)
                     .frame(maxWidth: 520)
                     .frame(maxWidth: .infinity)
 
+                // Status info + captured-peg tray live below the board to
+                // create breathing room between the board and the bottom
+                // safe-area inset. A min-height reservation keeps the
+                // board's vertical position stable as captures fill the
+                // tray during play.
                 BoardStatusStrip(model: model)
                     .padding(.horizontal)
-
-                Spacer(minLength: 0)
-
-                ControlBar(model: model)
-                    .padding(.horizontal)
-                    .safeAreaPadding(.bottom, 8)
+                    .padding(.top, 14)
+                    .padding(.bottom, 16)
+                    .frame(minHeight: 76, alignment: .top)
             }
+            .safeAreaPadding(.bottom, 8)
 
             if case .complete(let pegs, let rating) = model.session.status, model.isShowingCelebration {
                 ScoreCard(
@@ -96,7 +110,11 @@ public struct PegGameView: View {
                     }
                 )
                 .padding(.horizontal, 24)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.top, 12)
+                // Card descends over the chrome (which has no in-game
+                // value after the game ends) and leaves the final board
+                // state visible underneath.
+                .transition(.move(edge: .top).combined(with: .opacity))
                 .zIndex(2)
             }
         }
