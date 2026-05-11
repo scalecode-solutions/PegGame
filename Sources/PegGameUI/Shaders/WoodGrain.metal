@@ -1,10 +1,18 @@
 #include <metal_stdlib>
 using namespace metal;
 
-// Procedural wood-grain shader for the triangular game board.
-// Bound via SwiftUI `.colorEffect`: position, incoming-color, size, time.
+// Pine-plank shader for the triangular game board.
+//
+// Goals:
+//   - Long horizontal grain lines running with the wood, not concentric rings.
+//   - Subtle contrast — the wood is the *stage*, the pegs are the hero.
+//   - Honey/cream pine palette, with the occasional darker amber streak that
+//     reads as a growth ring.
+//
+// Bound via SwiftUI `.colorEffect` on a Rectangle that's then clipped to the
+// triangle outline. Parameters: position, incoming-color, size.
 
-namespace peg_wood {
+namespace peg_pine {
 
 inline float hash(float2 p) {
     p = fract(p * float2(123.34, 456.21));
@@ -26,47 +34,55 @@ inline float vnoise(float2 p) {
 inline float fbm(float2 p) {
     float v = 0.0;
     float a = 0.5;
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 4; ++i) {
         v += a * vnoise(p);
-        p = p * 2.03 + float2(11.7, 19.1);
+        p = p * 2.13 + float2(11.7, 19.1);
         a *= 0.5;
     }
     return v;
 }
 
-} // namespace peg_wood
+} // namespace peg_pine
 
 [[ stitchable ]]
-half4 woodGrain(float2 position, half4 color, float2 size, float time) {
+half4 woodGrain(float2 position, half4 color, float2 size) {
     float2 uv = position / max(size, float2(1.0));
 
-    // Place the "knot" offscreen so rings spread across the board in long arcs.
-    float2 origin = float2(-0.35, 0.6);
-    float2 d = uv - origin;
-    // Stretch so rings elongate horizontally like real wood.
-    float r = length(d * float2(0.45, 1.0));
-    float distortion = peg_wood::fbm(uv * 6.0 + float2(time * 0.015, time * 0.008)) * 0.18;
-    float ring = sin(r * 58.0 + distortion * 22.0);
-    ring = smoothstep(-0.35, 0.45, ring);
+    // Long parallel grain lines along the wood's length. The X axis is the
+    // grain direction; perturb the Y position with low-frequency noise so the
+    // lines wave gently instead of running ruler-straight.
+    float perturbation = peg_pine::fbm(uv * float2(2.0, 14.0)) * 0.45;
+    float grainBands = uv.y * 22.0 + perturbation;
+    float grain = sin(grainBands * 3.14159) * 0.5 + 0.5;        // 0...1
+    // Soften the grain so individual stripes don't punch out.
+    grain = smoothstep(0.18, 0.82, grain);
 
-    half3 dark  = half3(0.30, 0.16, 0.07);
-    half3 mid   = half3(0.55, 0.32, 0.16);
-    half3 light = half3(0.78, 0.55, 0.30);
+    // Broad, slowly-varying brightness across the plank — simulates the camera
+    // not being perfectly perpendicular to a chunk of natural wood.
+    float undulation = peg_pine::fbm(uv * float2(2.6, 1.4));
 
-    half3 base = mix(dark, mid, half(ring));
+    // Pine palette: pale cream → honey → darker amber for growth rings.
+    half3 cream  = half3(0.94, 0.81, 0.59);
+    half3 honey  = half3(0.82, 0.65, 0.40);
+    half3 amber  = half3(0.66, 0.46, 0.24);
 
-    // Fine vertical fiber streaks.
-    float fiber = peg_wood::fbm(uv * float2(48.0, 4.0));
-    base = mix(base, light, half(fiber * 0.22));
+    // Base is mostly honey with a tilt toward cream in the lighter ranges.
+    half3 base = mix(honey, cream, half(undulation * 0.55 + 0.15));
 
-    // Varnish highlight near the top.
-    float highlight = pow(max(0.0, 1.0 - uv.y), 3.0) * 0.18;
-    base += half3(highlight);
+    // Layer in subtle grain darkening (the soft bands between fibers).
+    base = mix(base, base * half3(0.86, 0.84, 0.80), half(grain * 0.28));
 
-    // Subtle vignette at edges.
-    float2 vd = uv - 0.5;
-    float vignette = 1.0 - smoothstep(0.45, 0.85, length(vd));
-    base *= half(0.85 + 0.15 * vignette);
+    // Occasional darker amber growth-ring streak: sharp valleys only.
+    float ringStreak = smoothstep(0.78, 1.0, grain);
+    base = mix(base, amber, half(ringStreak * 0.30));
+
+    // Very fine micro-fiber speckle for surface texture.
+    float speckle = peg_pine::fbm(uv * float2(60.0, 8.0));
+    base *= half(0.96 + 0.06 * speckle);
+
+    // Gentle top-down lighting: top edge slightly brighter than bottom.
+    float lighting = 0.94 + 0.10 * (1.0 - uv.y);
+    base *= half(lighting);
 
     return half4(base, color.a);
 }

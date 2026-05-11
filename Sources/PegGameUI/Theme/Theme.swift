@@ -62,8 +62,8 @@ extension Theme {
     /// classic peg colors, cream rating text.
     public static let crackerBarrel = Theme(
         pageBackground: Color(red: 0.12, green: 0.08, blue: 0.05),
-        boardSurfaceTint: Color(red: 0.55, green: 0.32, blue: 0.16),
-        boardShadow: Color.black.opacity(0.55),
+        boardSurfaceTint: Color(red: 0.82, green: 0.65, blue: 0.40),
+        boardShadow: Color.black.opacity(0.6),
         holeFill: Color(red: 0.10, green: 0.05, blue: 0.02),
         holeShadow: Color.black.opacity(0.65),
         selectionTint: Color(red: 1.00, green: 0.95, blue: 0.78),
