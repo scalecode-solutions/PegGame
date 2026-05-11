@@ -12,7 +12,7 @@ import PackagePlugin
 /// The resulting library lands in PegGameUI's resource bundle, where
 /// `ShaderLibrary.bundle(.module)` can resolve it at runtime.
 @main
-struct CompileMetalShadersPlugin: BuildToolPlugin {
+struct PGShadersPlugin: BuildToolPlugin {
 
     func createBuildCommands(
         context: PluginContext,

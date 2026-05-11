@@ -26,13 +26,13 @@ let package = Package(
             // treating them as un-handled resources.
             exclude: ["Shaders"],
             plugins: [
-                .plugin(name: "CompileMetalShaders"),
+                .plugin(name: "PGShaders"),
             ]
         ),
         .plugin(
-            name: "CompileMetalShaders",
+            name: "PGShaders",
             capability: .buildTool(),
-            path: "Plugins/CompileMetalShaders"
+            path: "Plugins/PGShaders"
         ),
         .testTarget(
             name: "PegGameKitTests",
