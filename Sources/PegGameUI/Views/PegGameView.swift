@@ -5,6 +5,7 @@ import PegGameKit
 public struct PegGameView: View {
 
     @State private var model: PegGameViewModel
+    @State private var isShowingStats = false
     @Environment(\.pegTheme) private var theme
 
     public init(session: GameSession? = nil,
@@ -22,7 +23,7 @@ public struct PegGameView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Header(model: model)
+                Header(model: model, showStats: { isShowingStats = true })
                     .padding(.horizontal)
 
                 BoardView(model: model)
@@ -58,12 +59,19 @@ public struct PegGameView: View {
         .sensoryFeedback(.from(.pegMoved), trigger: model.session.moveCount)
         .sensoryFeedback(.from(.win), trigger: model.isShowingCelebration) { _, new in new }
         .sensoryFeedback(.from(.pegSelected), trigger: model.selectedPosition)
+        .sheet(isPresented: $isShowingStats) {
+            StatsSheet(store: model.statsStore)
+                .pegTheme(theme)
+                .presentationDetents([.medium, .large])
+                .preferredColorScheme(.dark)
+        }
     }
 }
 
 private struct Header: View {
     @Bindable var model: PegGameViewModel
     @Environment(\.pegTheme) private var theme
+    var showStats: () -> Void
 
     var body: some View {
         HStack(alignment: .lastTextBaseline) {
@@ -76,6 +84,20 @@ private struct Header: View {
                     .foregroundStyle(theme.bodyColor.opacity(0.85))
             }
             Spacer()
+            Button(action: showStats) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(theme.headlineColor)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                Circle().stroke(theme.bodyColor.opacity(0.18), lineWidth: 1)
+                            )
+                    )
+            }
+            .accessibilityLabel("Stats")
         }
     }
 }
