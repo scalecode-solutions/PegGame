@@ -26,7 +26,7 @@ In your project's `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/scalecode-solutions/PegGame.git", from: "0.5.0"),
+    .package(url: "https://github.com/scalecode-solutions/PegGame.git", from: "0.6.0"),
 ],
 targets: [
     .target(
@@ -137,10 +137,14 @@ PegGameUI   (SwiftUI 6)
 └── Haptics     PegHaptic → SensoryFeedback
 ```
 
-The `Plugins/CompileMetalShaders` build-tool plugin compiles every `.metal`
-file in `Sources/PegGameUI/Shaders/` into a single `default.metallib`
-inside PegGameUI's resource bundle, so `ShaderLibrary.bundle(.module)` finds
-them at runtime with no work on the consumer side.
+The Metal shaders are compiled by the
+[scalecode-metal-plugin](https://github.com/scalecode-solutions/scalecode-metal-plugin)
+build-tool plugin (declared as a SPM dependency, not in-tree). It picks
+up every `.metal` in `Sources/PegGameUI/Shaders/` and links them into
+a single `default.metallib` resource, so `ShaderLibrary.bundle(.module)`
+resolves them at runtime with no consumer wiring. Extracting it lets
+sibling game packages share the same toolchain shell-out instead of
+copy-pasting it.
 
 ## Stats backends
 

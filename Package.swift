@@ -11,6 +11,12 @@ let package = Package(
         .library(name: "PegGameKit", targets: ["PegGameKit"]),
         .library(name: "PegGameUI", targets: ["PegGameUI"]),
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/scalecode-solutions/scalecode-metal-plugin.git",
+            from: "1.0.1"
+        ),
+    ],
     targets: [
         .target(
             name: "PegGameKit",
@@ -26,13 +32,8 @@ let package = Package(
             // treating them as un-handled resources.
             exclude: ["Shaders"],
             plugins: [
-                .plugin(name: "PGShaders"),
+                .plugin(name: "MetalShadersPlugin", package: "scalecode-metal-plugin"),
             ]
-        ),
-        .plugin(
-            name: "PGShaders",
-            capability: .buildTool(),
-            path: "Plugins/PGShaders"
         ),
         .testTarget(
             name: "PegGameKitTests",
