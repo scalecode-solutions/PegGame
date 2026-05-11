@@ -113,6 +113,12 @@ public final class PegGameViewModel {
             withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
                 self.inFlightMove = nil
             }
+            // If this move ended the game, let the peg's landing settle
+            // for a beat before celebrating — otherwise the score card
+            // pops up over a peg still mid-animation.
+            if !self.session.status.isActive {
+                try? await Task.sleep(for: .milliseconds(500))
+            }
             self.checkForCompletion()
         }
     }
