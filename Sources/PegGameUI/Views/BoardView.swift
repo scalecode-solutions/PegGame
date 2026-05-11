@@ -42,7 +42,12 @@ public struct BoardView: View {
                 }
             }
         }
-        .aspectRatio(1.0 / (sqrt(3) / 2 * 0.85), contentMode: .fit)
+        // Aspect ≈ 1.20 — slightly wider than equilateral (1.155). The peg
+        // cluster's slope is 60° (rows offset by half a unit); a wider
+        // container makes the triangle silhouette less steep than the peg
+        // cluster, so the middle-row corner pegs end up with consistent
+        // wood margin instead of being kissed by the silhouette.
+        .aspectRatio(1.20, contentMode: .fit)
     }
 
     @ViewBuilder
