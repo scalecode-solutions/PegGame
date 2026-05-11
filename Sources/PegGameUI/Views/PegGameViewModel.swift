@@ -7,15 +7,30 @@ import PegGameKit
 @Observable
 public final class PegGameViewModel {
 
+    /// Snapshot of a move that is currently animating along its arc.
+    public struct InFlightMove: Equatable, Sendable {
+        public let move: Move
+        public let peg: Peg
+        public let captured: Peg
+        public let startedAt: Date
+        public let duration: TimeInterval
+    }
+
     public let session: GameSession
     public let solver = Solver()
     public let statsStore: any StatsStore
+
+    /// Default duration for the peg-jump arc animation.
+    public var arcDuration: TimeInterval = 0.42
 
     /// Position the player has tapped first; legal moves originate here.
     public var selectedPosition: BoardPosition?
 
     /// Move the solver currently suggests (set by `requestHint()`); cleared on apply.
     public var hintedMove: Move?
+
+    /// Non-nil while a peg is mid-flight; gates other interactions.
+    public private(set) var inFlightMove: InFlightMove?
 
     /// 0...1 progress while the win celebration is playing.
     public var celebrationProgress: Double = 0
@@ -35,7 +50,7 @@ public final class PegGameViewModel {
 
     /// Handle a tap on `position`. Selects a peg, deselects, or applies a move.
     public func tap(_ position: BoardPosition) {
-        guard session.status.isActive else { return }
+        guard inFlightMove == nil, session.status.isActive else { return }
 
         if let selected = selectedPosition {
             if selected == position {
@@ -69,13 +84,41 @@ public final class PegGameViewModel {
     // MARK: - Actions
 
     public func apply(_ move: Move) {
-        session.apply(move)
-        selectedPosition = nil
-        hintedMove = nil
-        checkForCompletion()
+        guard inFlightMove == nil,
+              session.board.isLegal(move),
+              let movingPeg = session.board.peg(at: move.from),
+              let capturedPeg = session.board.peg(at: move.over) else {
+            return
+        }
+
+        let inFlight = InFlightMove(
+            move: move,
+            peg: movingPeg,
+            captured: capturedPeg,
+            startedAt: Date(),
+            duration: arcDuration
+        )
+        withAnimation(.easeOut(duration: 0.18)) {
+            inFlightMove = inFlight
+            selectedPosition = nil
+            hintedMove = nil
+        }
+
+        Task { @MainActor [weak self, inFlight] in
+            try? await Task.sleep(for: .seconds(inFlight.duration))
+            guard let self else { return }
+            // Only commit if no other action superseded this flight.
+            guard self.inFlightMove == inFlight else { return }
+            self.session.apply(inFlight.move)
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                self.inFlightMove = nil
+            }
+            self.checkForCompletion()
+        }
     }
 
     public func undo() {
+        guard inFlightMove == nil else { return }
         session.undo()
         selectedPosition = nil
         hintedMove = nil
@@ -87,6 +130,7 @@ public final class PegGameViewModel {
     }
 
     public func redo() {
+        guard inFlightMove == nil else { return }
         session.redo()
         selectedPosition = nil
         hintedMove = nil
@@ -94,6 +138,7 @@ public final class PegGameViewModel {
     }
 
     public func restart() {
+        cancelInFlight()
         session.restart()
         selectedPosition = nil
         hintedMove = nil
@@ -103,6 +148,7 @@ public final class PegGameViewModel {
     }
 
     public func restart(emptyAt position: BoardPosition) {
+        cancelInFlight()
         session.restart(emptyAt: position)
         selectedPosition = nil
         hintedMove = nil
@@ -112,11 +158,15 @@ public final class PegGameViewModel {
     }
 
     public func requestHint() {
-        guard session.status.isActive else { return }
+        guard inFlightMove == nil, session.status.isActive else { return }
         hintedMove = solver.hint(for: session.board)
         if let from = hintedMove?.from {
             selectedPosition = from
         }
+    }
+
+    private func cancelInFlight() {
+        inFlightMove = nil
     }
 
     // MARK: - Derived state

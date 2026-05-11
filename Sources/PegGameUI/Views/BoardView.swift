@@ -24,6 +24,11 @@ public struct BoardView: View {
                     cell(at: position, layout: layout)
                 }
 
+                if let inFlight = model.inFlightMove {
+                    FlyingPegOverlay(inFlight: inFlight, layout: layout)
+                        .transition(.opacity)
+                }
+
                 if model.isShowingCelebration {
                     CelebrationOverlay(progress: model.celebrationProgress,
                                        seed: model.celebrationSeed)
@@ -47,6 +52,13 @@ public struct BoardView: View {
         let isLegalDest = model.legalDestinationsFromSelection.contains(position)
         let isHintDest = model.isHintDestination(position)
 
+        // Hide pegs participating in the current in-flight move; the flying
+        // overlay owns the source peg's render, and the captured peg
+        // visually "vanishes" the moment the arc begins.
+        let inFlight = model.inFlightMove
+        let isFlyingSource = inFlight?.move.from == position
+        let isFlyingCaptured = inFlight?.move.over == position
+
         ZStack {
             HoleView(
                 diameter: diameter,
@@ -54,7 +66,8 @@ public struct BoardView: View {
                 isHintDestination: isHintDest
             )
 
-            if let peg = model.session.board.peg(at: position) {
+            if !isFlyingSource, !isFlyingCaptured,
+               let peg = model.session.board.peg(at: position) {
                 PegView(
                     peg: peg,
                     diameter: diameter,
@@ -64,7 +77,7 @@ public struct BoardView: View {
                 .transition(
                     .asymmetric(
                         insertion: .scale(scale: 0.4).combined(with: .opacity),
-                        removal: .scale(scale: 0.1).combined(with: .opacity)
+                        removal: .scale(scale: 0.3).combined(with: .opacity)
                     )
                 )
             }
