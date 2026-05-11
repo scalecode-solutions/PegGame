@@ -1,100 +1,29 @@
-# Embedding PegGame in a Host App
+# Embedding PegGameView in a Host App
 
-This doc covers the friction points and recommended API tweaks for
-hosting `PegGameView` inside an existing app — typically a tab-based or
-navigation-based shell — rather than running it as the root of its own
-window (as `Demo/PegGameDemo` does).
+PegGameView ships in two modes. The default (`embedded: false`) owns the
+whole screen and draws its own title row — that's what `Demo/PegGameDemo`
+uses. The other mode is for when you're dropping the game *inside* an
+existing app shell (NavigationStack, TabView, sheet, anywhere with its
+own chrome).
 
-The library works as-is for "I own the whole screen" use cases. The
-notes below are about making the embed case feel clean instead of
-double-chromed.
-
----
-
-## Why embedding bites you out of the box
-
-`PegGameView` is currently designed as a standalone scene:
-
-- It owns its own header — `Sources/PegGameUI/Views/PegGameView.swift:71`
-  draws "Peg Game" + "N pegs · N moves" + the stats button as a custom
-  `HStack`, not as nav-bar items.
-- The body fills the screen edge-to-edge via
-  `theme.pageBackground.ignoresSafeArea()` (line 22-23).
-- Stats sheet is locked to `.preferredColorScheme(.dark)` (line 66).
-- The control bar at the bottom uses a hardcoded
-  `.padding(.bottom, 8)` (`PegGameView.swift:39`) rather than safe-area
-  insets.
-
-When you drop `PegGameView` into a host that already provides
-`NavigationStack` + nav bar + tab bar, those choices stack badly:
-
-- **Double header.** The host's nav bar appears above PegGame's
-  internal header. Two title-shaped things, two action-shaped things,
-  both eating vertical space.
-- **Conflicting action surfaces.** Host wants to put toolbar items in
-  the trailing position; PegGame's stats button competes from inside
-  the view.
-- **Color-scheme override.** The hardcoded dark stats sheet ignores the
-  host's user-selected appearance.
-- **Tight bottom inset.** When the host hides its tab bar on push, the
-  control bar can land too close to the home indicator.
-
-None of these are bugs in the library — they're just consequences of
-designing for standalone use. The library can grow a small,
-backward-compatible embed mode that fixes all four.
-
----
-
-## Recommended API additions
-
-All changes preserve existing call sites (`PegGameView(session:)` and
-`PegGameView(session:statsStore:)` still work as today). The new
-parameters are opt-in.
-
-### 1. `embedded: Bool = false` init parameter
+## Standalone
 
 ```swift
-public init(
-    session: GameSession? = nil,
-    statsStore: any StatsStore = UserDefaultsStatsStore(),
-    embedded: Bool = false
-)
-```
+import PegGameUI
 
-When `embedded == true`, omit the internal `Header` view from the body.
-The host is responsible for providing title, subtitle, and the stats
-trigger via its own nav-bar chrome.
-
-Implementation sketch in `PegGameView.swift`:
-
-```swift
-public var body: some View {
-    ZStack {
-        theme.pageBackground.ignoresSafeArea()
-
-        VStack(spacing: 20) {
-            if !embedded {
-                Header(model: model, showStats: { isShowingStats = true })
-                    .padding(.horizontal)
-            }
-
-            BoardView(model: model)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 4)
-                .frame(maxWidth: 520)
-                .frame(maxWidth: .infinity)
-
-            Spacer(minLength: 0)
-
-            ControlBar(model: model)
-                .padding(.horizontal)
-        }
-        // …
+struct ContentView: View {
+    var body: some View {
+        PegGameView()
+            .pegTheme(.crackerBarrel)
     }
 }
 ```
 
-### 2. Optional `isShowingStats: Binding<Bool>?`
+That's it — runs as today, with the internal header and stats button.
+
+## Embedded
+
+Two opt-in parameters:
 
 ```swift
 public init(
@@ -105,107 +34,22 @@ public init(
 )
 ```
 
-When `isShowingStats` is provided, the view uses the external binding
-to drive its `.sheet(isPresented:)`. When `nil`, it falls back to the
-internal `@State` (today's behavior).
-
-This lets the host wire a toolbar button to the same stats sheet
-without duplicating the sheet's contents:
-
-```swift
-@State private var showsStats = false
-
-PegGameView(session: session, embedded: true, isShowingStats: $showsStats)
-    .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button { showsStats = true } label: {
-                Image(systemName: "chart.bar.fill")
-            }
-        }
-    }
-```
-
-Implementation note: pick the source-of-truth binding at init time —
-something like
+- **`embedded: true`** hides the internal title row so the host's nav
+  bar is the only chrome on screen. The wood-grain page background
+  still extends edge-to-edge underneath.
+- **`isShowingStats:`** is an optional external binding for the stats
+  sheet. When you hide the internal header you also lose its chart
+  button — pass a binding in and wire your own toolbar button to it,
+  and the same sheet opens.
 
 ```swift
-private var statsBinding: Binding<Bool> {
-    externalStatsBinding ?? $internalStatsState
-}
-```
+import PegGameUI
 
-…and pass `statsBinding` to `.sheet(isPresented:)`.
-
-### 3. Drop the hardcoded `.preferredColorScheme(.dark)` on the stats sheet
-
-`Sources/PegGameUI/Views/PegGameView.swift:62-67`:
-
-```swift
-.sheet(isPresented: $isShowingStats) {
-    StatsSheet(store: model.statsStore)
-        .pegTheme(theme)
-        .presentationDetents([.medium, .large])
-        .preferredColorScheme(.dark)   // ← drop this
-}
-```
-
-The page background is dark-amber-themed regardless of the system
-appearance, so the stats sheet inherits that visual identity from
-`theme` and `presentationDetents`. Force-dark on top forces the entire
-sheet's typography and controls into dark mode even when the host is
-in light. Let the host (or `pegTheme`) make that call.
-
-If a hard-locked dark stats sheet matters, expose it as a per-call
-option:
-
-```swift
-public init(
-    …,
-    statsSheetColorScheme: ColorScheme? = nil
-)
-```
-
-Default `nil` → inherit. Apps that want it locked pass `.dark`.
-
-### 4. Safe-area-aware bottom inset on `ControlBar`
-
-`Sources/PegGameUI/Views/PegGameView.swift:38-39`:
-
-```swift
-ControlBar(model: model)
-    .padding(.horizontal)
-    .padding(.bottom, 8)   // ← assumes no tab bar / no home indicator
-```
-
-Replace the hardcoded `.padding(.bottom, 8)` with a safe-area-aware
-form, e.g. apply the bottom padding through `safeAreaInset` or read
-`safeAreaInsets` from the geometry:
-
-```swift
-ControlBar(model: model)
-    .padding(.horizontal)
-    .safeAreaPadding(.bottom, 8)
-```
-
-This way the buttons keep their 8pt gap above whatever the host's
-effective bottom inset is — home indicator on phones without a tab
-bar, tab bar on hosts that keep it visible during the game, nothing
-on macOS.
-
----
-
-## Example host integration
-
-After the above changes, a typical embedded use looks like:
-
-```swift
 struct PegGameDestination: View {
-    @State private var session = GameSession.randomized()
     @State private var showsStats = false
 
     var body: some View {
         PegGameView(
-            session: session,
             embedded: true,
             isShowingStats: $showsStats
         )
@@ -213,7 +57,7 @@ struct PegGameDestination: View {
         .navigationTitle("Peg Game")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { showsStats = true } label: {
                     Image(systemName: "chart.bar.fill")
                 }
@@ -223,53 +67,66 @@ struct PegGameDestination: View {
 }
 ```
 
-Pushed into via `NavigationLink`, this gives you:
+Push that from any `NavigationStack` and you get:
 
-- Host's system back chevron + nav-bar title for navigation chrome
-- Host's toolbar trailing button for the stats sheet
-- Game's wood-grain board + control bar wearing the chosen theme
-- No double header, no chrome conflicts
+- Host's system back chevron + nav-bar title
+- Host's trailing toolbar button driving the stats sheet
+- Wood-grain board with the chosen theme
+- Status strip + captured-peg tray under the board (live counts +
+  visual progress, always shown)
+- Control bar at the bottom
 
-For full-screen / non-embedded use, nothing changes — the existing
-`PegGameView(session:)` initializer keeps working exactly as today.
+Tab bars and bottom safe areas are handled — `ControlBar` uses
+`.safeAreaPadding(.bottom, 8)`, so the buttons keep their 8pt gap above
+whatever inset is in effect (home indicator with the tab bar hidden,
+the tab bar itself when the host keeps it visible, nothing on macOS).
 
----
+## What to keep
 
-## What to preserve
+- **The theme.** `.pegTheme(.crackerBarrel)` is the visual identity —
+  wood-grain, serif headline, amber palette. Pick a theme and commit
+  to it; don't try to harmonize with the host's button style or
+  background.
+- **The page background extending edge-to-edge.** Lets the host's nav
+  bar sit on top of the wood, which reads as "the game is the entire
+  surface below the chrome." Right effect.
+- **`.sensoryFeedback(...)` hooks.** They're built into PegGameView and
+  tied to the gameplay state machine. Just let them run.
 
-The visual identity is the point. Don't dilute these to "match" a
-host:
+## Picking a theme per host
 
-- **The chosen `PegTheme`.** Wood grain, serif headline, amber palette
-  — that's what makes the game feel like a *game* you opened, not a
-  styled view of the host. Pick a theme, commit to it.
-- **The page background extending edge-to-edge.** With the embedded
-  header removed, the host's nav bar sits on top of the themed
-  background, which reads as "the game is the entire surface below
-  the chrome." Right effect.
-- **Control bar's `.ultraThinMaterial` chrome.** Material backgrounds
-  read well over wood grain and are already idiomatic across modern
-  SwiftUI hosts. Don't try to swap them for the host's exact button
-  style — a small visual delta reinforces "I'm in the game now."
-- **Sensory feedback hooks.** The `.sensoryFeedback(...)` modifiers
-  on lines 59-61 are tightly coupled to the gameplay state machine.
-  Keep them; they're the difference between a game and a glorified
-  form.
+The theme is read from the environment via `\.pegTheme`. Apply it at
+any level above PegGameView:
 
----
+```swift
+PegGameView(embedded: true, isShowingStats: $showsStats)
+    .pegTheme(.crackerBarrel)
+```
 
-## Summary of the diff
+Custom themes work too — `Theme` is a value type with public
+initializers, so you can build your own with whichever palette and
+substitute it for `.crackerBarrel`.
 
-Net change to `PegGameView`:
+## What's not in the public API
 
-- Two optional init parameters (`embedded`, `isShowingStats`),
-  defaults preserve current behavior
-- One `if !embedded` guard around the `Header` instantiation
-- One binding indirection for the stats sheet's `isPresented:`
-- One removed `.preferredColorScheme(.dark)` modifier
-- One `.padding(.bottom, 8)` → `.safeAreaPadding(.bottom, 8)` swap on
-  `ControlBar`
+Intentionally not exposed:
 
-All existing call sites — including `Demo/PegGameDemo` — keep working
-without modification. The library gains a clean embed story without
-losing its standalone one.
+- The view-model is internal. Push state in via `session:` and read
+  state out by holding your own reference to that `GameSession` (it's
+  `@Observable`).
+- Stat aggregation. Use `StatsStore` from `PegGameKit` directly if you
+  want to surface stats outside the bundled sheet.
+- The `Header` view. If you want a Peg Game–branded title inside your
+  host, render it yourself with the theme's `headlineColor` and a
+  serif font; it's three lines.
+
+## Compatibility note
+
+All four embed-mode parameters default to "standalone" behavior, so
+existing call sites continue to work without modification:
+
+```swift
+PegGameView()                                    // unchanged
+PegGameView(session: customSession)              // unchanged
+PegGameView(session: s, statsStore: customStore) // unchanged
+```

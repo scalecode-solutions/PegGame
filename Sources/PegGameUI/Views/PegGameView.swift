@@ -2,19 +2,60 @@ import SwiftUI
 import PegGameKit
 
 /// Top-level peg game scene. Drop into a SwiftUI hierarchy and you're playing.
+///
+/// ### Standalone
+/// ```swift
+/// PegGameView()                       // owns the whole screen, internal header
+/// PegGameView(session: customSession) // bring your own starting board
+/// ```
+///
+/// ### Embedded in a host
+/// Pass `embedded: true` to hide the internal title row (the host's nav bar
+/// supplies the title). Pass `isShowingStats: $yourBinding` and add your own
+/// toolbar button that flips it, and the same stats sheet pops up.
+///
+/// ```swift
+/// @State private var showsStats = false
+///
+/// PegGameView(embedded: true, isShowingStats: $showsStats)
+///     .navigationTitle("Peg Game")
+///     .toolbar {
+///         ToolbarItem(placement: .topBarTrailing) {
+///             Button { showsStats = true } label: { Image(systemName: "chart.bar.fill") }
+///         }
+///     }
+/// ```
 public struct PegGameView: View {
 
     @State private var model: PegGameViewModel
-    @State private var isShowingStats = false
+    @State private var internalIsShowingStats = false
     @Environment(\.pegTheme) private var theme
 
-    public init(session: GameSession? = nil,
-                statsStore: any StatsStore = UserDefaultsStatsStore()) {
+    private let embedded: Bool
+    private let externalStatsBinding: Binding<Bool>?
+
+    public init(
+        session: GameSession? = nil,
+        statsStore: any StatsStore = UserDefaultsStatsStore(),
+        embedded: Bool = false,
+        isShowingStats: Binding<Bool>? = nil
+    ) {
         let initialSession = session ?? GameSession.randomized()
         _model = State(initialValue: PegGameViewModel(
             session: initialSession,
             statsStore: statsStore
         ))
+        self.embedded = embedded
+        self.externalStatsBinding = isShowingStats
+    }
+
+    /// Drives the stats sheet's `isPresented:`. External binding wins when
+    /// supplied; otherwise the view manages its own state.
+    private var statsBinding: Binding<Bool> {
+        externalStatsBinding ?? Binding(
+            get: { internalIsShowingStats },
+            set: { internalIsShowingStats = $0 }
+        )
     }
 
     public var body: some View {
@@ -23,8 +64,10 @@ public struct PegGameView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 18) {
-                Header(model: model, showStats: { isShowingStats = true })
-                    .padding(.horizontal)
+                if !embedded {
+                    Header(showStats: { statsBinding.wrappedValue = true })
+                        .padding(.horizontal)
+                }
 
                 BoardView(model: model)
                     .padding(.horizontal, 16)
@@ -38,7 +81,7 @@ public struct PegGameView: View {
 
                 ControlBar(model: model)
                     .padding(.horizontal)
-                    .padding(.bottom, 8)
+                    .safeAreaPadding(.bottom, 8)
             }
 
             if case .complete(let pegs, let rating) = model.session.status, model.isShowingCelebration {
@@ -61,17 +104,15 @@ public struct PegGameView: View {
         .sensoryFeedback(.from(.pegMoved), trigger: model.session.moveCount)
         .sensoryFeedback(.from(.win), trigger: model.isShowingCelebration) { _, new in new }
         .sensoryFeedback(.from(.pegSelected), trigger: model.selectedPosition)
-        .sheet(isPresented: $isShowingStats) {
+        .sheet(isPresented: statsBinding) {
             StatsSheet(store: model.statsStore)
                 .pegTheme(theme)
                 .presentationDetents([.medium, .large])
-                .preferredColorScheme(.dark)
         }
     }
 }
 
 private struct Header: View {
-    @Bindable var model: PegGameViewModel
     @Environment(\.pegTheme) private var theme
     var showStats: () -> Void
 
