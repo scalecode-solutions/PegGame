@@ -42,7 +42,11 @@ public struct BoardView: View {
                 }
             }
         }
-        .aspectRatio(1.0 / (sqrt(3) / 2 * 0.85), contentMode: .fit)
+        // Aspect ≈ 1.10. The peg cluster's natural aspect (5 wide × ~5 tall
+        // with the added apex/base padding) is roughly 1:1, so we give the
+        // BoardView slightly more vertical room than horizontal. The triangle
+        // is then height-constrained and reads as a near-equilateral plank.
+        .aspectRatio(1.10, contentMode: .fit)
     }
 
     @ViewBuilder

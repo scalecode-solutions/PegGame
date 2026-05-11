@@ -1,11 +1,18 @@
 import SwiftUI
 
-/// Triangle shape with softly rounded corners, used as the wood board outline.
+/// Triangle shape with uniform rounded corners.
+///
+/// Built from three `addArc(tangent1End:tangent2End:radius:)` calls. Each one
+/// rounds the corner at its `tangent1End` by replacing the sharp join between
+/// the incoming and outgoing edges with a circular arc of `cornerRadius`. The
+/// current point at the start of each arc is *along* the incoming edge — not
+/// at the corner — which is what the tangent-arc API expects. Starting the
+/// path at the midpoint of one edge guarantees that.
 public struct RoundedTriangle: Shape {
 
     public var cornerRadius: CGFloat
 
-    public init(cornerRadius: CGFloat = 32) {
+    public init(cornerRadius: CGFloat = 12) {
         self.cornerRadius = cornerRadius
     }
 
@@ -14,24 +21,19 @@ public struct RoundedTriangle: Shape {
         let top = CGPoint(x: rect.midX, y: rect.minY)
         let bl  = CGPoint(x: rect.minX, y: rect.maxY)
         let br  = CGPoint(x: rect.maxX, y: rect.maxY)
+        // Midpoint of the right edge (top → br). Anywhere on an edge works;
+        // this just gives us a clean starting "current point" along an
+        // incoming line for the first tangent arc.
+        let start = CGPoint(x: (top.x + br.x) / 2,
+                            y: (top.y + br.y) / 2)
 
         var p = Path()
-        // Start just past the top vertex, on the left edge.
-        let start = midpoint(top, bl, fraction: 0.02)
         p.move(to: start)
-        p.addLine(to: top)
-        p.addArc(tangent1End: top, tangent2End: br, radius: r)
-        p.addLine(to: br)
-        p.addArc(tangent1End: br, tangent2End: bl, radius: r)
-        p.addLine(to: bl)
-        p.addArc(tangent1End: bl, tangent2End: top, radius: r)
+        p.addArc(tangent1End: br,  tangent2End: bl,  radius: r)
+        p.addArc(tangent1End: bl,  tangent2End: top, radius: r)
+        p.addArc(tangent1End: top, tangent2End: br,  radius: r)
         p.closeSubpath()
         return p
-    }
-
-    private func midpoint(_ a: CGPoint, _ b: CGPoint, fraction: CGFloat) -> CGPoint {
-        CGPoint(x: a.x + (b.x - a.x) * fraction,
-                y: a.y + (b.y - a.y) * fraction)
     }
 }
 
@@ -47,7 +49,7 @@ public struct WoodSurface: View {
 
     public var body: some View {
         GeometryReader { proxy in
-            let triangle = RoundedTriangle(cornerRadius: 34)
+            let triangle = RoundedTriangle()
             let w = proxy.size.width
             let h = proxy.size.height
 

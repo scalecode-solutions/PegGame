@@ -12,20 +12,27 @@ public struct BoardLayout: Equatable {
 
     public init(containerSize: CGSize) {
         self.containerSize = containerSize
-        // 5 pegs across the bottom; leave a half-peg margin on each side.
+        // 5 pegs across the bottom row.
         let horizontalUnits: CGFloat = 5
-        let unitFromWidth = containerSize.width / horizontalUnits
-        // Vertically we need 4 row-gaps of √3/2·unit plus a half-peg margin top/bottom.
+        // Extra wood reserved above the top peg and below the bottom row so
+        // every peg has visual breathing room from the triangle silhouette.
+        // 0.35 units ≈ slightly less than half a peg of margin, which gives
+        // the apex peg ≈5pt of clearance from the rounded apex on iPhone.
+        let apexPadding: CGFloat = 0.35
+        let basePadding: CGFloat = 0.35
         let verticalGap: CGFloat = sqrt(3) / 2
-        let unitFromHeight = containerSize.height / (4 * verticalGap + 1)
+        let verticalUnits = 4 * verticalGap + 1 + apexPadding + basePadding
+
+        let unitFromWidth = containerSize.width / horizontalUnits
+        let unitFromHeight = containerSize.height / verticalUnits
         let unit = min(unitFromWidth, unitFromHeight)
         self.pegDiameter = unit * 0.78
 
         let actualWidth = unit * horizontalUnits
-        let actualHeight = unit * (4 * verticalGap + 1)
+        let actualHeight = unit * verticalUnits
         let xOffset = (containerSize.width - actualWidth) / 2
         let yOffset = (containerSize.height - actualHeight) / 2
-        let topY = yOffset + unit * 0.5
+        let topY = yOffset + unit * (0.5 + apexPadding)
 
         var pts: [CGPoint] = []
         pts.reserveCapacity(BoardPosition.count)
