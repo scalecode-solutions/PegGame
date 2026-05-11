@@ -1,29 +1,20 @@
 import SwiftUI
 import PegGameKit
 
-/// Horizontal-grid display of every peg that's been captured this game.
+/// Horizontal strip of every peg captured this game, in capture order.
 ///
-/// 5-column LazyVGrid; pegs fill left-to-right, top-to-bottom in capture
-/// order. At the win state (13 captures) the layout is 5 + 5 + 3, leading
-/// aligned, so the bottom row sits flush left with no "hollow" placeholders
-/// on the right.
+/// Single row — max 13 captures fits comfortably across an iPhone screen at
+/// the chosen peg size. Each cell uses the same glossy `PegView` shader the
+/// board pegs use, just shrunk down.
 struct CapturedPegsTray: View {
 
     let history: [GameSession.HistoryEntry]
 
-    private let columns: Int = 5
     private let pegSize: CGFloat = 22
-    private let spacing: CGFloat = 6
-
-    private var gridColumns: [GridItem] {
-        Array(
-            repeating: GridItem(.fixed(pegSize), spacing: spacing, alignment: .center),
-            count: columns
-        )
-    }
+    private let spacing: CGFloat = 5
 
     var body: some View {
-        LazyVGrid(columns: gridColumns, alignment: .leading, spacing: spacing) {
+        HStack(spacing: spacing) {
             ForEach(Array(history.enumerated()), id: \.offset) { _, entry in
                 PegView(
                     peg: entry.capturedPeg,
@@ -40,7 +31,7 @@ struct CapturedPegsTray: View {
                 )
             }
         }
-        .fixedSize(horizontal: true, vertical: false)
+        .frame(height: pegSize)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Captured pegs: \(history.count)")
     }
