@@ -187,6 +187,34 @@ the board geometry, move legality, undo/redo, the solver's winnability
 proof for every starting hole, and round-tripping the SwiftData store
 in-memory.
 
+## Development setup
+
+PegGameUI pulls in
+[`scalecode-metal-plugin`](https://github.com/scalecode-solutions/scalecode-metal-plugin),
+which ships an SPM build-tool plugin. Xcode prompts you to **Trust & Enable
+Plugin** on first open of any project that depends on it. Clicking trust
+once is fine — Xcode remembers per-plugin-fingerprint — but if you want
+to skip all such prompts for your user account on this machine, set the
+hidden defaults:
+
+```sh
+# Trust SPM build plugins (and Swift macros) without prompting
+defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
+defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+```
+
+Restart Xcode for the changes to take effect. To revert:
+
+```sh
+defaults delete com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation
+defaults delete com.apple.dt.Xcode IDESkipMacroFingerprintValidation
+```
+
+These settings are **per-user, per-machine** and bypass validation for
+*every* package's build plugins and macros — same blast radius as clicking
+"Trust & Enable" on whatever happens to show up. Reasonable for solo dev
+machines; less appropriate for shared CI or someone else's Mac.
+
 ## License
 
 [MIT](LICENSE). Use it freely.
