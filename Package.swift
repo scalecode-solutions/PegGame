@@ -20,11 +20,19 @@ let package = Package(
             name: "PegGameUI",
             dependencies: ["PegGameKit"],
             path: "Sources/PegGameUI",
-            // Metal shaders live alongside the Swift code as canonical source,
-            // but SPM doesn't compile them into a metallib. Host apps add the
-            // .metal files to their own target so Xcode produces the main
-            // bundle's default.metallib (resolved by ShaderLibrary.default).
-            exclude: ["Shaders"]
+            // The build-tool plugin compiles Sources/PegGameUI/Shaders/*.metal
+            // into a default.metallib that ends up in this target's resource
+            // bundle. Excluding the raw .metal files keeps SPM from also
+            // treating them as un-handled resources.
+            exclude: ["Shaders"],
+            plugins: [
+                .plugin(name: "CompileMetalShaders"),
+            ]
+        ),
+        .plugin(
+            name: "CompileMetalShaders",
+            capability: .buildTool(),
+            path: "Plugins/CompileMetalShaders"
         ),
         .testTarget(
             name: "PegGameKitTests",

@@ -109,7 +109,7 @@ private struct CelebrationOverlay: View {
             Rectangle()
                 .fill(Color.white.opacity(0.001))
                 .colorEffect(
-                    ShaderLibrary.default.celebration(
+                    ShaderLibrary.bundle(.module).celebration(
                         .float2(proxy.size.width, proxy.size.height),
                         .float(Float(progress)),
                         .float(Float(seed))

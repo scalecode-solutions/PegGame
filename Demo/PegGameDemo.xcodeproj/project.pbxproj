@@ -9,18 +9,10 @@
 /* Begin PBXBuildFile section */
 		PEG000PEGKITBUILDFILE001 /* PegGameKit in Frameworks */ = {isa = PBXBuildFile; productRef = PEG000PEGKITPRODUCTDEP01 /* PegGameKit */; };
 		PEG000PEGUIBUILDFILE0001 /* PegGameUI in Frameworks */ = {isa = PBXBuildFile; productRef = PEG000PEGUIPRODUCTDEP001 /* PegGameUI */; };
-		PEG000WOODGRAINBFILE0001 /* WoodGrain.metal in Sources */ = {isa = PBXBuildFile; fileRef = PEG000WOODGRAINFREF00001 /* WoodGrain.metal */; };
-		PEG000PEGGLOSSBFILE00001 /* PegGloss.metal in Sources */ = {isa = PBXBuildFile; fileRef = PEG000PEGGLOSSFREF000001 /* PegGloss.metal */; };
-		PEG000HINTGLOWBFILE00001 /* HintGlow.metal in Sources */ = {isa = PBXBuildFile; fileRef = PEG000HINTGLOWFREF000001 /* HintGlow.metal */; };
-		PEG000CELEBRATIONBFILE01 /* Celebration.metal in Sources */ = {isa = PBXBuildFile; fileRef = PEG000CELEBRATIONFREF001 /* Celebration.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		PEG000APPPRODUCT00000001 /* PegGameDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PegGameDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		PEG000WOODGRAINFREF00001 /* WoodGrain.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = WoodGrain.metal; path = ../Sources/PegGameUI/Shaders/WoodGrain.metal; sourceTree = "<group>"; };
-		PEG000PEGGLOSSFREF000001 /* PegGloss.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = PegGloss.metal; path = ../Sources/PegGameUI/Shaders/PegGloss.metal; sourceTree = "<group>"; };
-		PEG000HINTGLOWFREF000001 /* HintGlow.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = HintGlow.metal; path = ../Sources/PegGameUI/Shaders/HintGlow.metal; sourceTree = "<group>"; };
-		PEG000CELEBRATIONFREF001 /* Celebration.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Celebration.metal; path = ../Sources/PegGameUI/Shaders/Celebration.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -47,7 +39,6 @@
 		PEG000MAINGROUP000000001 = {
 			isa = PBXGroup;
 			children = (
-				PEG000SHADERSGROUP000001 /* Shaders */,
 				PEG000SOURCEROOTGROUP001 /* PegGameDemo */,
 				PEG000PRODGROUP000000001 /* Products */,
 			);
@@ -59,17 +50,6 @@
 				PEG000APPPRODUCT00000001 /* PegGameDemo.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		PEG000SHADERSGROUP000001 /* Shaders */ = {
-			isa = PBXGroup;
-			children = (
-				PEG000WOODGRAINFREF00001 /* WoodGrain.metal */,
-				PEG000PEGGLOSSFREF000001 /* PegGloss.metal */,
-				PEG000HINTGLOWFREF000001 /* HintGlow.metal */,
-				PEG000CELEBRATIONFREF001 /* Celebration.metal */,
-			);
-			name = Shaders;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -150,10 +130,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				PEG000WOODGRAINBFILE0001 /* WoodGrain.metal in Sources */,
-				PEG000PEGGLOSSBFILE00001 /* PegGloss.metal in Sources */,
-				PEG000HINTGLOWBFILE00001 /* HintGlow.metal in Sources */,
-				PEG000CELEBRATIONBFILE01 /* Celebration.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

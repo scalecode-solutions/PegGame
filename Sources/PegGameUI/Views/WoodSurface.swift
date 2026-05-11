@@ -59,7 +59,7 @@ public struct WoodSurface: View {
                 Rectangle()
                     .fill(theme.boardSurfaceTint)
                     .colorEffect(
-                        ShaderLibrary.default.woodGrain(
+                        ShaderLibrary.bundle(.module).woodGrain(
                             .float2(w, h)
                         )
                     )
