@@ -59,28 +59,37 @@ public struct PegGameView: View {
     }
 
     public var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             theme.pageBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 18) {
+            VStack(spacing: 0) {
+                // Top chrome cluster — header, controls, status strip stack
+                // flush together so they read as one band of "stuff that
+                // isn't the game." The control bar sits within thumb reach
+                // of where your hand rests near the top of the screen.
                 if !embedded {
                     Header(showStats: { statsBinding.wrappedValue = true })
                         .padding(.horizontal)
+                        .padding(.bottom, 8)
                 }
 
-                BoardView(model: model)
-                    .padding(.horizontal, 16)
-                    .frame(maxWidth: 520)
-                    .frame(maxWidth: .infinity)
+                ControlBar(model: model)
+                    .padding(.horizontal)
+                    .padding(.bottom, 14)
 
                 BoardStatusStrip(model: model)
                     .padding(.horizontal)
 
-                Spacer(minLength: 0)
+                Spacer(minLength: 12)
 
-                ControlBar(model: model)
-                    .padding(.horizontal)
+                // The active surface — pushed to the bottom of the screen so
+                // every peg is within natural thumb travel. safeAreaPadding
+                // keeps the base row floating above the home indicator.
+                BoardView(model: model)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: 520)
+                    .frame(maxWidth: .infinity)
                     .safeAreaPadding(.bottom, 8)
             }
 
@@ -96,7 +105,11 @@ public struct PegGameView: View {
                     }
                 )
                 .padding(.horizontal, 24)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.top, 12)
+                // Card descends over the chrome (which has no in-game
+                // value after the game ends) and leaves the final board
+                // state visible underneath.
+                .transition(.move(edge: .top).combined(with: .opacity))
                 .zIndex(2)
             }
         }
